@@ -1,0 +1,31 @@
+{{define "history"}}
+{{template "head" .}}
+<h1>Signer history · {{.Repo}}</h1>
+<p><a href="{{.Base}}/admin?repo={{urlquery .Repo}}">Back to administration</a></p>
+<form method="get"><input type="hidden" name="repo" value="{{.Repo}}"><label>Search username or GitHub ID <input name="q" value="{{.Query}}"></label><button>Search</button></form>
+<section class="card"><table><tr><th>Contributor</th><th>Version</th><th>Signed</th><th>Status</th></tr>
+{{range .Records}}<tr><td>{{.Login}}<br><small>{{.ID}}</small></td><td><a href="{{$.Base}}/agreement?repo={{urlquery .Repository}}&amp;version={{urlquery .Version}}">{{.Version}}</a></td><td>{{.SignedAt}}</td><td>{{if .RevokedAt}}Revoked {{.RevokedAt}}{{else if .EndAt}}Ends {{.EndAt}}{{else}}Recorded{{end}}<br><small>{{.Origin}}</small></td></tr>{{else}}<tr><td colspan="4">No matching signatures.</td></tr>{{end}}
+</table></section>
+{{template "foot" .}}
+{{end}}
+
+{{define "user-history"}}
+{{template "head" .}}
+<h1>My signatures</h1>
+<p>Signature history for @{{.Session.Login}}. Revoking an acceptance causes affected pull requests to be checked again.</p>
+{{range .Records}}<section class="card"><h2>{{.Repository}}</h2><p>Signed {{.SignedAt}} · {{.Origin}}</p>
+<p><a href="{{$.Base}}/agreement?repo={{urlquery .Repository}}&amp;version={{urlquery .Version}}">Read the exact version you accepted</a></p>
+{{if .RevokedAt}}<p>Revoked {{.RevokedAt}}</p>{{else}}<form method="post" action="{{$.Base}}/history/revoke">
+<input type="hidden" name="csrf" value="{{$.Session.CSRF}}"><input type="hidden" name="repo" value="{{.Repository}}"><input type="hidden" name="record_id" value="{{.RecordID}}">
+<label><input type="checkbox" name="confirm" value="yes" required>I want to revoke this acceptance for this repository.</label><button>Revoke signature</button></form>{{end}}
+</section>{{else}}<p>You have no recorded signatures.</p>{{end}}
+{{if .Events}}<section class="card"><h2>Activity</h2><table><tr><th>Action</th><th>Repository</th><th>When</th></tr>{{range .Events}}<tr><td>{{.Kind}}</td><td>{{.Repo}}</td><td>{{.OccurredAt}}</td></tr>{{end}}</table></section>{{end}}
+{{template "foot" .}}
+{{end}}
+
+{{define "agreement-history"}}
+{{template "head" .}}
+<h1>Agreement snapshot · {{.Repo}}</h1><p>Version {{.Version}}</p><article><pre style="white-space:pre-wrap">{{.Body}}</pre></article>
+<p><a href="{{.Base}}/history">My signatures</a></p>
+{{template "foot" .}}
+{{end}}

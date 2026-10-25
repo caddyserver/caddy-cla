@@ -1,0 +1,24 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caddy Contributor License Agreement</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#243746;background:#f3f6f8;line-height:1.65}body{margin:0}header{background:#123b4a;color:white;padding:20px max(24px,calc((100vw - 960px)/2));display:flex;justify-content:space-between;align-items:center;gap:20px}header a{color:white}main{max-width:900px;margin:40px auto;padding:0 24px}article,.card{background:white;padding:32px;border:1px solid #dce4e8;border-radius:8px;margin:24px 0}h1,h2{line-height:1.25}a{color:#00758b}button,.button{display:inline-block;background:#087e8b;color:white;border:0;border-radius:4px;padding:12px 20px;font:inherit;cursor:pointer;text-decoration:none}button.secondary{background:transparent;border:1px solid #aac2ca;padding:5px 12px}label{display:block;margin:20px 0}input{margin-right:10px}.success{border-left:5px solid #238454;padding:16px;background:#eaf6ee}small,.muted{color:#526873}table{border-collapse:collapse;width:100%;overflow-wrap:anywhere}th,td{padding:10px;border-bottom:1px solid #dce4e8;text-align:left}pre{overflow:auto}footer{max-width:900px;margin:40px auto;padding:0 24px;color:#526873}textarea,input[type=text],input[type=url]{box-sizing:border-box;width:100%;padding:10px;font:inherit}textarea{min-height:220px}button:disabled{opacity:.5;cursor:default}details{margin:24px 0}summary{cursor:pointer;font-weight:600}nav{display:flex;gap:16px;align-items:center}nav form{margin:0}.account{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}.avatar{width:32px;height:32px;border-radius:50%;object-fit:cover}@media(max-width:600px){header{align-items:flex-start;flex-direction:column}article,.card{padding:20px}main{margin-top:24px}}
+header a{text-decoration:none}header a:hover{text-decoration:underline}header .brand{text-decoration:none;display:flex;align-items:center;gap:18px;flex-shrink:0}.brand svg{width:108px;height:auto}.brand span{border-left:1px solid #ffffff40;padding-left:18px;font-size:14px;color:#d8e7eb}header nav{flex-wrap:wrap;justify-content:flex-end;gap:12px 20px}header button.secondary{color:white;border-color:#ffffff50}form+form{margin-top:20px}input[type=file]{display:block;margin:10px 0 0;max-width:100%;font:inherit}input[type=file]::file-selector-button{padding:8px 12px;margin-right:12px;border:1px solid #aac2ca;border-radius:4px;background:#f3f6f8;color:#243746;cursor:pointer}.actions{display:flex;flex-wrap:wrap;gap:12px}.repo-switcher{display:flex;flex-wrap:wrap;gap:10px;margin:24px 0}.repo-switcher a{padding:7px 14px;border:1px solid #ccdce1;border-radius:6px;text-decoration:none;background:white}.repo-switcher a[aria-current=page]{background:#e0f0f2;border-color:#087e8b;color:#075967;font-weight:600}.pr-ref{white-space:nowrap}@media(max-width:1000px){header{flex-wrap:wrap}header nav{justify-content:flex-start}}@media(max-width:600px){.brand{flex-wrap:wrap}.brand span{font-size:13px}header nav{gap:12px}.pr-ref{white-space:normal}}
+</style>
+</head>
+<body>
+<header>
+<a class="brand" href="{{.Base}}/">{{template "logo"}}<span>Contributor agreements</span></a>
+<nav>{{if .Logged}}<span class="account"><img class="avatar" src="https://avatars.githubusercontent.com/u/{{.Session.ID}}?s=64" width="32" height="32" alt="" referrerpolicy="no-referrer">@{{.Session.Login}}</span>{{if .Admin}}<a href="{{.Base}}/admin">Administration</a> <a href="{{.Base}}/history">My signatures</a>{{end}}<form method="post" action="{{.Base}}/logout">
+<input type="hidden" name="csrf" value="{{.Session.CSRF}}">
+<button class="secondary">Sign out</button>
+</form>{{end}}</nav>
+</header>
+<main>{{end}}
+{{define "foot"}}</main>
+<footer>Caddy Contributor License Agreement · Signatures are associated with your GitHub account.</footer>
+</body>
+</html>{{end}}

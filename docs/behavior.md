@@ -1,0 +1,68 @@
+# Behavior
+
+## Repository configuration
+
+Administrators need GitHub write access to the repository they manage. Agreement
+text, public Gist selection and exemptions are editable in the admin interface.
+The GitHub App must be installed before adding another repository.
+
+Publishing changed agreement text creates an immutable revision and queues that
+repository's open PRs. Older text and signatures remain available. Gists can be
+pinned to a revision or refreshed manually with **Refresh from Gist**. There is no
+automatic Gist polling.
+Configuration files provide initial defaults; restarting does not overwrite live edits.
+
+Signatures are scoped to repository, agreement revision and numeric GitHub ID.
+Accepting an agreement for one repository does not approve another repository,
+even when both use identical text. Contributors can view their own history and
+revoke their own scoped acceptances; changes queue PR checks automatically.
+
+## Pull requests
+
+The installed GitHub App receives `pull_request`, `issue_comment` and `merge_group` webhooks.
+It posts or updates one app-owned comment and publishes the `license/cla` commit
+status. **No GitHub Actions workflow is required.** Configure repository rules to
+require `license/cla` from this GitHub App to block merges when approval is missing.
+
+Checks run after opening, reopening or updating a PR, after signing, and after
+agreement/exemption changes. Startup and 15-minute discovery repair missed events.
+The bot updates its existing comment rather than posting repeated reminder comments.
+
+Merge queues receive `license/cla` on their synthetic head commit. Merge checks
+retry API failures and are requeued after signature or agreement changes. Pending
+merge checks and retry errors appear in the repository’s admin page.
+
+The comment links to the repository's signing page and a **Recheck this PR** page.
+That link preserves PR context through OAuth and requires a CSRF-protected button
+press. The PR author, a covered contributor or repository writer may request a
+recheck; browser requests are limited to one per PR per 30 seconds. The PR author
+or a writer can also comment `recheck` or `@cla-bot check`.
+
+The PR opener and linked commit authors must have signed or be exempt. When GitHub
+cannot associate an author email with an account, the comment identifies the
+commits and links to GitHub email settings with instructions for fixing attribution.
+The service does not request or compare private account email lists.
+
+## Imports and history
+
+The admin interface accepts raw CLA Assistant JSON, native JSON exports and CSV
+exports up to 6 MiB. Import is atomic, preserves original evidence and recognizes
+historical repository names by stable repository ID. Records lacking numeric user
+IDs remain unresolved until an administrator verifies and links the identity.
+Exports, admin history and legacy resolution are restricted to the selected repository.
+A contributor's personal history includes only that authenticated GitHub ID.
+
+## Current limits
+
+- Real OAuth and GitHub App behavior still need live-repository validation.
+  Browser tests use isolated sessions and mocked GitHub; they do not prove live OAuth.
+- Co-authors resolve through identified author emails or GitHub noreply addresses;
+  unresolved identities fail closed.
+- PRs exceeding GitHub's 250-commit REST limit fail closed.
+- Merge-group public comparison reads share GitHub’s unauthenticated API rate limit.
+  Throttled checks remain pending and retry. Stored group jobs expire after seven days.
+- No custom signer-form builder, private Gist access, small-diff thresholds,
+  source-organization exemptions or corporate-signature administration.
+- Gist network failures retain the last valid agreement snapshot and are logged.
+
+Upstream reference: https://github.com/cla-assistant/cla-assistant

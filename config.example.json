@@ -1,0 +1,20 @@
+{
+  "base_url": "http://localhost:8080",
+  "listen": "127.0.0.1:8080",
+  "database": "data/cla.db",
+  "repositories": [
+    "caddyserver/caddy"
+  ],
+  "admin_ids": [],
+  "exempt_users": [
+    "*[bot]"
+  ],
+  "exempt_public_orgs": [
+    "github"
+  ],
+  "agreement_file": "agreement.md",
+  "agreement_version": "fd82f5aa148dc67b743e0e8e14d33c9b9d32b6d8",
+  "agreement_source": "https://gist.github.com/mholt/f2a199f495ebd529f6d9",
+  "repository_id": "29207621",
+  "base_path": "/cla"
+}

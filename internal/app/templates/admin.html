@@ -1,0 +1,65 @@
+{{define "admin"}}
+{{template "head" .}}
+<h1>CLA administration</h1>
+<nav class="repo-switcher" aria-label="Repositories">{{range .Repositories}}<a href="{{$.Base}}/admin?repo={{urlquery .}}" {{if eq . $.Repo}}aria-current="page"{{end}}>{{.}}</a>{{end}}</nav>
+<h2>{{.Repo}}</h2>
+{{if .ImportDone}}<p class="success">Processed {{.ImportCount}} signature records. Records without verified GitHub IDs are available under historical identity resolution.</p>{{end}}
+<p>{{.Count}} signature records · {{.Pending}} pending GitHub updates</p>
+<section class="card">
+<h2>Agreement</h2>
+<p><a href="{{.Base}}/?repo={{urlquery .Repo}}">View the contributor signing page</a></p>
+<p>Current revision: <code>{{.Repository.Version}}</code></p>
+<form method="post" action="{{.Base}}/admin/repository">
+<input type="hidden" name="csrf" value="{{.Session.CSRF}}">
+<input type="hidden" name="repo" value="{{.Repo}}">
+<input type="hidden" name="generation" value="{{.Repository.Generation}}">
+<label>Agreement title<input type="text" name="title" value="{{.Repository.Title}}" required maxlength="200"></label>
+<label>Public Gist URL<input type="url" name="gist_url" value="{{.Repository.GistURL}}" placeholder="https://gist.github.com/owner/id"></label>
+<label>Gist filename (required for a multi-document Gist)<input type="text" name="gist_file" value="{{.Repository.GistFile}}"></label>
+<p>Gists are fetched only when you refresh them here. New revisions require confirmation below.</p>
+<details><summary>Edit agreement text directly</summary><label>Agreement text<textarea name="body" rows="14">{{.Repository.Body}}</textarea></label></details>
+<label><input type="checkbox" name="confirm_change" value="yes">I understand that a new agreement revision requires contributors to sign again. Previous text and signatures remain in history.</label>
+<div class="actions"><button name="mode" value="gist">Refresh from Gist</button>
+<button name="mode" value="text">Publish entered text</button></div>
+</form>
+</section>
+<section class="card">
+<h2>Signatures</h2>
+<p><a href="{{.Base}}/admin/history?repo={{urlquery .Repo}}">Browse signer history</a> · <a href="{{.Base}}/admin/legacy?repo={{urlquery .Repo}}">Resolve historical identities</a></p>
+<p class="actions"><a class="button" href="{{.Base}}/admin/export?repo={{urlquery .Repo}}">Download JSON</a> <a class="button" href="{{.Base}}/admin/export?repo={{urlquery .Repo}}&amp;format=csv">Download CSV</a></p>
+<form method="post" enctype="multipart/form-data" action="{{.Base}}/admin/import">
+<input type="hidden" name="csrf" value="{{.Session.CSRF}}">
+<input type="hidden" name="repo" value="{{.Repo}}">
+<label>Import agreement version<input type="text" name="version" value="{{.Repository.Version}}" required></label>
+<label>Signature export (raw JSON or CSV, up to 6 MiB)<input type="file" name="signatures" accept=".json,.csv" required></label>
+<p>Records without a verified GitHub ID are retained for identity review. Invalid uploads change no records.</p>
+<button>Import signatures</button>
+</form>
+</section>
+<section class="card">
+<h2>Exemptions</h2>
+<form method="post" action="{{.Base}}/admin/settings">
+<input type="hidden" name="csrf" value="{{.Session.CSRF}}">
+<input type="hidden" name="repo" value="{{.Repo}}">
+<label>Exempt GitHub usernames (comma separated; * is a wildcard)<input type="text" name="users" value="{{.PolicyUsers}}"></label>
+<label>Organizations whose public members are exempt<input type="text" name="orgs" value="{{.PolicyOrgs}}"></label>
+<button>Save exemptions</button>
+</form>
+<form method="post" action="{{.Base}}/admin/recheck">
+<input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="repo" value="{{.Repo}}">
+<button>Recheck open pull requests</button>
+</form>
+</section>
+{{if .Jobs}}<section class="card"><h2>Pending updates</h2><table><tr><th>Pull request</th><th>Attempts</th><th>Last error</th></tr>{{range .Jobs}}<tr><td><a class="pr-ref" href="https://github.com/{{.Repo}}/pull/{{.Number}}">{{.Repo}}#{{.Number}}</a></td><td>{{.Attempts}}</td><td>{{.Error}}</td></tr>{{end}}</table></section>{{end}}
+{{if .MergeJobs}}<section class="card"><h2>Pending merge-queue checks</h2><table><tr><th>Merge commit</th><th>Attempts</th><th>Last error</th></tr>{{range .MergeJobs}}<tr><td><a href="https://github.com/{{$.Repo}}/commit/{{.Head}}"><code>{{printf "%.12s" .Head}}</code></a></td><td>{{.Attempts}}</td><td>{{.Error}}</td></tr>{{end}}</table></section>{{end}}
+<details class="card"><summary>Add another repository</summary>
+<form method="post" action="{{.Base}}/admin/repository">
+<input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="generation" value="0">
+<input type="hidden" name="mode" value="text"><input type="hidden" name="confirm_change" value="yes">
+<label>Repository (owner/name)<input type="text" name="repo" required></label>
+<label>Agreement title<input type="text" name="title" value="Contributor License Agreement" required></label>
+<label>Initial agreement text<textarea name="body" required></textarea></label>
+<p>The GitHub App must already be installed, and you must have repository write access.</p><button>Add repository</button>
+</form></details>
+{{template "foot" .}}
+{{end}}

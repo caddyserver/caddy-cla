@@ -1,0 +1,9 @@
+{{define "recheck"}}
+{{template "head" .}}
+<h1>Recheck pull request</h1>
+<p><a href="https://github.com/{{.Repo}}/pull/{{.Number}}">{{.Repo}}#{{.Number}}</a></p>
+{{if .Queued}}<p class="success">Recheck queued. The bot will update the pull request status and comment.</p>
+{{else}}<p>If you signed the agreement or fixed your commit email, request a fresh check below.</p>
+<form method="post" action="{{.Base}}/recheck"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="repo" value="{{.Repo}}"><input type="hidden" name="pr" value="{{.Number}}"><button>Recheck this PR</button></form>{{end}}
+{{template "foot" .}}
+{{end}}

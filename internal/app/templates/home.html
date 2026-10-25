@@ -1,0 +1,28 @@
+{{define "home"}}
+{{template "head" .}}
+<h1>{{.Title}}</h1>
+<p>Repository: <strong>{{.Repo}}</strong></p>
+<p>Please review the agreement and sign with your GitHub account.</p>
+{{if .Signed}}<p class="success"><strong>You have signed this version.</strong> Your pull request checks update automatically. <a href="{{.Base}}/history">View your signature history</a>.</p>{{end}}
+<article>{{.Body}}</article>
+<small>Agreement version: {{.Version}}{{if .Source}} · <a href="{{.Source}}">Original agreement</a>{{end}}</small>
+<section class="card">
+{{if .Logged}}
+{{if .Signed}}<h2>Thank you, @{{.Session.Login}}.</h2><p>No further action is needed for this version and repository.</p>
+{{else}}
+<h2>Sign as @{{.Session.Login}}</h2>
+<form method="post" action="{{.Base}}/sign">
+<input type="hidden" name="csrf" value="{{.Session.CSRF}}">
+<input type="hidden" name="repo" value="{{.Repo}}">
+<input type="hidden" name="version" value="{{.Version}}">
+<label><input type="checkbox" name="accept" value="yes" required>I have read and agree to the agreement above for {{.Repo}}.</label>
+<button>Sign the CLA</button>
+</form>
+{{end}}
+{{else}}
+<h2>Sign with GitHub</h2><p>We use your GitHub ID and username to record your signature. We request no OAuth scopes.</p>
+<a class="button" href="{{if .LoginURL}}{{.LoginURL}}{{else}}{{.Base}}/auth/github{{end}}">Sign in with GitHub</a>
+{{end}}
+</section>
+{{template "foot" .}}
+{{end}}

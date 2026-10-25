@@ -1,0 +1,8 @@
+# Merge into the existing example.com site block.
+example.com {
+    @cla path /cla /cla/*
+    handle @cla {
+        reverse_proxy 127.0.0.1:8080
+    }
+    # Existing website handlers follow here.
+}

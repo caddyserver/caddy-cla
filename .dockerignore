@@ -1,0 +1,10 @@
+.git
+.env
+*.pem
+*.db*
+config.json
+imports
+caddy-cla
+
+bin
+data

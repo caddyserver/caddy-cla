@@ -1,0 +1,24 @@
+[Unit]
+Description=Caddy contributor agreement service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=caddy-cla
+Group=caddy-cla
+WorkingDirectory=/opt/caddy-cla
+EnvironmentFile=/etc/caddy-cla/secrets.env
+ExecStart=/opt/caddy-cla/caddy-cla -config /etc/caddy-cla/config.json
+StateDirectory=caddy-cla
+StateDirectoryMode=0700
+UMask=0077
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/caddy-cla
+
+[Install]
+WantedBy=multi-user.target

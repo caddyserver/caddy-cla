@@ -1,0 +1,14 @@
+{{define "legacy"}}
+{{template "head" .}}
+<h1>Historical identity resolution · {{.Repo}}</h1>
+<p><a href="{{.Base}}/admin?repo={{urlquery .Repo}}">Back to administration</a></p>
+<p>These records lack a numeric GitHub ID. Verify that the historical signer owns the current account before linking: usernames can be reassigned. Original evidence and the administrator audit trail are retained.</p>
+{{range .Records}}<section class="card"><h2>{{.Login}}</h2><p>Signed {{.SignedAt}} · Version {{.Version}}</p>
+{{if .ResolvedID}}<p>Linked to GitHub ID {{.ResolvedID}} by administrator {{.ResolvedBy}} on {{.ResolvedAt}}</p>
+{{else}}<form method="post" action="{{$.Base}}/admin/legacy/link">
+<input type="hidden" name="csrf" value="{{$.Session.CSRF}}"><input type="hidden" name="repo" value="{{$.Repo}}"><input type="hidden" name="key" value="{{.Key}}">
+<label>Current GitHub username <input name="login" value="{{.Login}}" required></label>
+<label><input type="checkbox" name="verified" value="yes" required>I verified this is the same person who signed the historical agreement.</label><button>Link verified identity</button>
+</form>{{end}}</section>{{else}}<p>No legacy records require resolution.</p>{{end}}
+{{template "foot" .}}
+{{end}}
