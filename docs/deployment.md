@@ -8,6 +8,7 @@ absolute. For production, set:
 
 ```json
 {
+  "automation_enabled": false,
   "base_url": "https://example.com",
   "base_path": "/cla",
   "listen": "127.0.0.1:8080",
@@ -45,6 +46,11 @@ Systemd reads the environment file before switching to the service user. The
 service needs read access to the PEM file, not the environment file itself.
 After updating credentials, run `systemctl restart caddy-cla`. Check status with
 `systemctl status caddy-cla` and logs with `journalctl -u caddy-cla`.
+
+Keep `automation_enabled: false` during installation and credential setup. Login,
+signing and administration work in this mode, but webhooks and queued bot work
+cannot publish anything. Explicitly enable automation only after reviewing the
+installation and any existing queued work. Startup never scans historical PRs.
 
 Without GitHub credentials, viewing agreements and the health endpoint works;
 signing and GitHub automation remain unavailable. Install the GitHub App only

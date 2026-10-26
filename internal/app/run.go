@@ -67,8 +67,9 @@ func Run(ctx context.Context, options Options) error {
 		return err
 	}
 	a := newApp(c, s)
-	go a.initialReconcile(ctx)
-	go a.work(ctx)
+	if c.AutomationEnabled {
+		go a.work(ctx)
+	}
 	go a.maintenance(ctx)
 	server := &http.Server{
 		Addr:              c.Listen,

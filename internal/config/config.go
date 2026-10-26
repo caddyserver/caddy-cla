@@ -11,6 +11,9 @@ import (
 
 // Config describes the deployment, agreement and GitHub application credentials.
 type Config struct {
+	// AutomationEnabled explicitly permits GitHub webhook processing and queued bot writes.
+	// It defaults to false; credentials alone never activate the bot.
+	AutomationEnabled bool `json:"automation_enabled"`
 	// RepositoryID is the stable GitHub repository ID used to recognize historical names during import.
 	RepositoryID string `json:"repository_id"`
 	// BaseURL is the canonical public origin, without a route prefix.

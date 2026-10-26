@@ -80,6 +80,9 @@ func (a *App) mergeWebhook(w http.ResponseWriter, r *http.Request, body []byte, 
 
 // runMergeJob retries one durable merge-group check without losing concurrent signature changes.
 func (a *App) runMergeJob(ctx context.Context) {
+	if !a.c.AutomationEnabled {
+		return
+	}
 	var repo, head, base string
 	var installation, generation int64
 	var attempts int

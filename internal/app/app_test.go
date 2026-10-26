@@ -28,13 +28,14 @@ import (
 func fixture(t *testing.T) *App {
 	t.Helper()
 	c := config.Config{
-		BaseURL:          "http://localhost:8080",
-		BasePath:         "/cla",
-		Repositories:     []string{"caddyserver/caddy"},
-		AgreementVersion: "v1",
-		AgreementSource:  "https://gist.github.com/test",
-		AdminIDs:         []int64{7},
-		ExemptUsers:      []string{"*[bot]"},
+		AutomationEnabled: true,
+		BaseURL:           "http://localhost:8080",
+		BasePath:          "/cla",
+		Repositories:      []string{"caddyserver/caddy"},
+		AgreementVersion:  "v1",
+		AgreementSource:   "https://gist.github.com/test",
+		AdminIDs:          []int64{7},
+		ExemptUsers:       []string{"*[bot]"},
 	}
 	s, err := storage.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {

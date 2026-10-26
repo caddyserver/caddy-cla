@@ -59,6 +59,10 @@ func (a *App) webhook(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		return
 	}
+	if !a.c.AutomationEnabled {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	if event != "pull_request" && event != "issue_comment" && event != "merge_group" {
 		w.WriteHeader(204)
 		return
@@ -161,20 +165,6 @@ func (a *App) webhook(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(202)
 }
 
-// discover enumerates configured repositories' open pull requests and queues each for evaluation.
-func (a *App) discover(ctx context.Context) error {
-	names, err := a.s.Repositories()
-	if err != nil {
-		return err
-	}
-	for _, repo := range names {
-		if err = a.discoverRepository(ctx, repo); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // discoverRepository refreshes one repository without touching another administrator's repositories.
 func (a *App) discoverRepository(ctx context.Context, repo string) error {
 
@@ -207,6 +197,9 @@ func (a *App) discoverRepository(ctx context.Context, repo string) error {
 
 // work processes durable GitHub updates until the service context is canceled.
 func (a *App) work(ctx context.Context) {
+	if !a.c.AutomationEnabled {
+		return
+	}
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -223,6 +216,9 @@ func (a *App) work(ctx context.Context) {
 // runJob executes one due job, retrying failures with capped exponential backoff.
 // Generation checks prevent completion from removing work queued while this job was running.
 func (a *App) runJob(ctx context.Context) {
+	if !a.c.AutomationEnabled {
+		return
+	}
 	var id, installation int64
 	var repo string
 	var number, attempts int
@@ -250,7 +246,7 @@ func (a *App) runJob(ctx context.Context) {
 	}
 }
 
-// maintenance periodically repairs missed PR updates and expires authentication state.
+// maintenance expires authentication state without discovering or enqueueing pull requests.
 func (a *App) maintenance(ctx context.Context) {
 	ticker := time.NewTicker(15 * time.Minute)
 	defer ticker.Stop()
@@ -259,11 +255,6 @@ func (a *App) maintenance(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if a.c.AppID != "" {
-				if err := a.discover(ctx); err != nil {
-					slog.Error("reconcile open PRs", "error", err)
-				}
-			}
 			_, _ = a.s.Exec("DELETE FROM oauth_return_paths WHERE token NOT IN (SELECT token FROM oauth_states)")
 			now := time.Now().Unix()
 			_, _ = a.s.Exec("DELETE FROM merge_groups WHERE received<?", now-7*24*60*60)

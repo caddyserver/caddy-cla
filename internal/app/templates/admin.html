@@ -1,6 +1,7 @@
 {{define "admin"}}
 {{template "head" .}}
 <h1>CLA administration</h1>
+{{if not .AutomationEnabled}}<p role="status"><strong>GitHub automation is disabled.</strong> Signing and administration remain available. No queued checks or webhook events will post comments or statuses.</p>{{end}}
 <nav class="repo-switcher" aria-label="Repositories">{{range .Repositories}}<a href="{{$.Base}}/admin?repo={{urlquery .}}" {{if eq . $.Repo}}aria-current="page"{{end}}>{{.}}</a>{{end}}</nav>
 <h2>{{.Repo}}</h2>
 {{if .ImportDone}}<p class="success">Processed {{.ImportCount}} signature records. Records without verified GitHub IDs are available under historical identity resolution.</p>{{end}}
@@ -47,7 +48,8 @@
 </form>
 <form method="post" action="{{.Base}}/admin/recheck">
 <input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="repo" value="{{.Repo}}">
-<button>Recheck open pull requests</button>
+<label><input type="checkbox" name="confirm_all" value="yes" required {{if not .AutomationEnabled}}disabled{{end}}>I understand this checks every open pull request and can post comments on all of them.</label>
+<button {{if not .AutomationEnabled}}disabled{{end}}>Recheck all open pull requests</button>
 </form>
 </section>
 {{if .Jobs}}<section class="card"><h2>Pending updates</h2><table><tr><th>Pull request</th><th>Attempts</th><th>Last error</th></tr>{{range .Jobs}}<tr><td><a class="pr-ref" href="https://github.com/{{.Repo}}/pull/{{.Number}}">{{.Repo}}#{{.Number}}</a></td><td>{{.Attempts}}</td><td>{{.Error}}</td></tr>{{end}}</table></section>{{end}}

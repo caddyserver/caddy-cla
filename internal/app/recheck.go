@@ -26,6 +26,10 @@ func (a *App) recheckPR(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if !a.c.AutomationEnabled {
+		http.Error(w, "GitHub automation is disabled", http.StatusServiceUnavailable)
+		return
+	}
 	repo, err := a.repository(r)
 	number, parseErr := strconv.Atoi(r.FormValue("pr"))
 	if err != nil || parseErr != nil || number <= 0 {

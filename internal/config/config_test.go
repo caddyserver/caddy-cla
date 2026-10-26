@@ -32,6 +32,9 @@ func TestHostingPaths(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			if c.AutomationEnabled {
+				t.Fatal("automation must default to disabled")
+			}
 			if c.BasePath != test.want || c.BaseURL != "https://example.com" || c.PublicURL() != "https://example.com"+test.want {
 				t.Fatalf("unexpected canonical configuration: %+v", c)
 			}

@@ -1,9 +1,7 @@
 package app
 
 import (
-	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 
@@ -75,14 +73,4 @@ func (a *App) history(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	a.render(w, "history", map[string]any{"Base": a.c.BasePath, "Session": s, "Records": filtered, "Query": q, "Repo": cfg.Name})
-}
-
-// initialReconcile discovers open pull requests after startup so missed deliveries are repaired.
-func (a *App) initialReconcile(ctx context.Context) {
-	if a.c.AppID == "" {
-		return
-	}
-	if err := a.discover(ctx); err != nil {
-		slog.Error("initial PR reconciliation failed; periodic retry scheduled", "error", err)
-	}
 }

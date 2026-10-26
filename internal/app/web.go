@@ -477,6 +477,14 @@ func (a *App) recheck(w http.ResponseWriter, r *http.Request) {
 	if _, ok := a.authorized(w, r); !ok {
 		return
 	}
+	if !a.c.AutomationEnabled {
+		http.Error(w, "GitHub automation is disabled", http.StatusServiceUnavailable)
+		return
+	}
+	if r.FormValue("confirm_all") != "yes" {
+		http.Error(w, "Confirm rechecking every open pull request", http.StatusBadRequest)
+		return
+	}
 	cfg, err := a.repository(r)
 	if err != nil {
 		a.fail(w, err)
@@ -498,6 +506,7 @@ func (a *App) fail(w http.ResponseWriter, err error) {
 // render buffers a named page before committing the HTML response.
 func (a *App) render(w http.ResponseWriter, name string, data any) {
 	if m, ok := data.(map[string]any); ok {
+		m["AutomationEnabled"] = a.c.AutomationEnabled
 		if _, present := m["Logged"]; !present {
 			if s, ok := m["Session"].(session); ok && s.ID > 0 {
 				m["Logged"] = true

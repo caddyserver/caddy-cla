@@ -24,8 +24,12 @@ It posts or updates one app-owned comment and publishes the `license/cla` commit
 status. **No GitHub Actions workflow is required.** Configure repository rules to
 require `license/cla` from this GitHub App to block merges when approval is missing.
 
-Checks run after opening, reopening or updating a PR, after signing, and after
-agreement/exemption changes. Startup and 15-minute discovery repair missed events.
+Automation is disabled unless `automation_enabled` is explicitly set to `true`.
+Credentials alone never enable webhook processing or queued GitHub writes.
+When enabled, checks run after new PR webhook activity and after signing or
+agreement/exemption changes for already tracked PRs. Startup and maintenance
+never discover or backfill existing PRs. A manual scan of all open PRs requires
+an administrator to explicitly confirm that it can post comments on every PR.
 The bot updates its existing comment rather than posting repeated reminder comments.
 
 Merge queues receive `license/cla` on their synthetic head commit. Merge checks
