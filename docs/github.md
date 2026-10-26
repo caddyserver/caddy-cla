@@ -97,6 +97,8 @@ Public Gists are read without requesting the `gist` OAuth scope. Commit email
 attribution comes from GitHub's linked author response, not private email access.
 
 Merge-group requests are verified and queued durably. The bot evaluates the exact
-base/head comparison, including commit co-authors and associated PR openers, and
+base/head comparison, including commit authors and associated PR openers, and
 reports `license/cla` on the synthetic merge-group head. Public commit comparisons
 use unauthenticated reads; Contents permission is not requested.
+
+`Co-authored-by` commit-message trailers are ignored when determining signatories.

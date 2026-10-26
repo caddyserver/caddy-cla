@@ -361,8 +361,8 @@ func TestGitHubReconcileAndDynamicAdmin(t *testing.T) {
 	if err := a.gh.reconcile(context.Background(), a.s, "caddyserver/caddy", 10, 12); err != nil {
 		t.Fatal(err)
 	}
-	if state != "failure" {
-		t.Fatal("unresolved co-author passed")
+	if state != "success" {
+		t.Fatal("co-author trailers must not affect signed authors")
 	}
 	message = "test"
 	if err := a.enqueue("caddyserver/caddy", 10, 12); err != nil {

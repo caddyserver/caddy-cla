@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/mail"
 	"net/url"
 	"os"
 	"sort"
@@ -294,7 +293,7 @@ func (g *GitHub) reconcilePR(ctx context.Context, s *storage.Store, repo string,
 			body += "The complete commit list could not be verified. GitHub’s PR commits API returns at most 250 commits; split larger PRs before requesting another check.\n\n"
 		}
 		if unresolved && !incomplete {
-			body += "Some commit authors or co-authors could not be verified automatically. A maintainer must resolve author identities before this check can pass.\n\n"
+			body += "Some commit authors could not be verified automatically. A maintainer must resolve author identities before this check can pass.\n\n"
 		}
 		if len(unlinkedCommits) > 0 {
 			body += "**Commit email is not linked to a GitHub account.**\n\n"
@@ -364,12 +363,11 @@ type commit struct {
 	} `json:"commit"`
 }
 
-// contributors verifies commit attribution, co-authors and repository-scoped signatures.
+// contributors verifies GitHub commit attribution and repository-scoped signatures.
+// Co-authored-by message trailers do not contribute additional signing identities.
 func (g *GitHub) contributors(ctx context.Context, s *storage.Store, cfg storage.Repository, token string, users map[int64]User, commits []commit) ([]string, []string, bool, error) {
 	unresolved := false
 	unlinkedCommits := []string{}
-	authorEmails := map[string]User{}
-	coauthors := []string{}
 	for _, c := range commits {
 		if c.Author == nil || c.Author.ID == 0 {
 			unresolved = true
@@ -378,50 +376,12 @@ func (g *GitHub) contributors(ctx context.Context, s *storage.Store, cfg storage
 			}
 		} else {
 			users[c.Author.ID] = *c.Author
-			authorEmails[strings.ToLower(c.Commit.Author.Email)] = *c.Author
 		}
 		if (c.Author == nil || c.Author.ID == 0) && c.Committer != nil && c.Committer.ID > 0 {
 			users[c.Committer.ID] = *c.Committer
 		}
-		for _, line := range strings.Split(c.Commit.Message, "\n") {
-			if strings.HasPrefix(strings.ToLower(strings.TrimSpace(line)), "co-authored-by:") {
-				coauthors = append(coauthors, strings.TrimSpace(strings.SplitN(line, ":", 2)[1]))
-			}
-		}
 	}
-	for _, trailer := range coauthors {
-		address, err := mail.ParseAddress(trailer)
-		if err != nil {
-			unresolved = true
-			continue
-		}
-		email := strings.ToLower(address.Address)
-		if u, ok := authorEmails[email]; ok && u.ID > 0 {
-			users[u.ID] = u
-			continue
-		}
-		parts := strings.Split(email, "@")
-		if len(parts) != 2 || parts[1] != "users.noreply.github.com" {
-			unresolved = true
-			continue
-		}
-		login := parts[0]
-		var expected int64
-		if pieces := strings.SplitN(login, "+", 2); len(pieces) == 2 {
-			expected, err = strconv.ParseInt(pieces[0], 10, 64)
-			if err != nil {
-				unresolved = true
-				continue
-			}
-			login = pieces[1]
-		}
-		var u User
-		if err = g.request(ctx, "GET", "/users/"+url.PathEscape(login), token, nil, &u); err != nil || u.ID <= 0 || (expected != 0 && expected != u.ID) {
-			unresolved = true
-			continue
-		}
-		users[u.ID] = u
-	}
+
 	policy := cfg.Policy
 	missing := []string{}
 	for id, u := range users {

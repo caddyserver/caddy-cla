@@ -9,7 +9,7 @@ go vet ./...
 
 Tests use temporary SQLite databases and local mock GitHub servers. Merge-queue
 coverage includes signed webhook deduplication, retries, comparison pagination,
-multiple PR authors, co-authors, signature revocation, agreement changes and
+multiple PR authors, ignored co-author trailers, signature revocation, agreement changes and
 concurrent requeues. Incomplete attribution never produces a successful status.
 
 ## Interactive browser fixture

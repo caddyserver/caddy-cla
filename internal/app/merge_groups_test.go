@@ -176,7 +176,7 @@ func TestMergeGroupFailureRetainsJob(t *testing.T) {
 	}
 }
 
-// TestMergeGroupAttribution requires all grouped PR authors and co-authors, never an old status alone.
+// TestMergeGroupAttribution requires grouped commit and PR authors, ignoring co-author trailers.
 func TestMergeGroupAttribution(t *testing.T) {
 	a := fixture(t)
 	appKey(t, a)
@@ -226,7 +226,7 @@ func TestMergeGroupAttribution(t *testing.T) {
 	sign(44)
 	check("success")
 	message = "test\n\nCo-authored-by: Unknown <unknown@example.test>"
-	check("failure")
+	check("success")
 	total = 3
 	if err := a.gh.reconcileMergeGroup(t.Context(), a.s, "caddyserver/caddy", base, head, 12); err == nil {
 		t.Fatal("incomplete comparison approved")
