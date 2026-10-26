@@ -30,7 +30,10 @@ When enabled, checks run after new PR webhook activity and after signing or
 agreement/exemption changes for already tracked PRs. Startup and maintenance
 never discover or backfill existing PRs. A manual scan of all open PRs requires
 an administrator to explicitly confirm that it can post comments on every PR.
-The bot updates its existing comment rather than posting repeated reminder comments.
+An already-satisfied PR receives only the status check, with no new comment.
+When action is needed, the bot creates one reminder and updates that same comment
+as contributors sign or the check changes. Resolving a reminder never creates a
+new success comment. Repeated checks with unchanged wording do not edit it.
 
 Merge queues receive `license/cla` on their synthetic head commit. Merge checks
 retry API failures and are requeued after signature or agreement changes. Pending

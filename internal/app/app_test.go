@@ -274,9 +274,21 @@ func TestGitHubReconcileAndDynamicAdmin(t *testing.T) {
 			_ = json.NewDecoder(r.Body).Decode(&v)
 			state = v["state"]
 			fmt.Fprint(w, `{}`)
+		case "/repos/caddyserver/caddy/issues/comments/99":
+			comments++
+			var comment map[string]string
+			if err := json.NewDecoder(r.Body).Decode(&comment); err != nil {
+				t.Error(err)
+			}
+			commentBody = comment["body"]
+			fmt.Fprint(w, `{}`)
 		case "/repos/caddyserver/caddy/issues/10/comments":
 			if r.Method == "GET" {
-				fmt.Fprint(w, `[]`)
+				if commentBody == "" {
+					fmt.Fprint(w, `[]`)
+				} else {
+					_ = json.NewEncoder(w).Encode([]map[string]any{{"id": 99, "body": commentBody, "performed_via_github_app": map[string]int{"id": 123}}})
+				}
 			} else {
 				comments++
 				var comment map[string]string

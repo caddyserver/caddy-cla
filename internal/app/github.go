@@ -272,7 +272,7 @@ func (g *GitHub) reconcile(ctx context.Context, s *storage.Store, repo string, n
 	}
 	body := "<!-- caddy-cla -->\n**" + cfg.Title + "**\n\n"
 	if state == "success" {
-		body += "All identified contributors have signed the CLA or are exempt. Thank you!"
+		body += "All identified contributors have signed the CLA. Thank you!"
 	} else {
 		if len(missing) > 0 {
 			body += strings.Join(missing, ", ") + ": please [read and sign the CLA](" + signURL + ").\n\n"
@@ -296,7 +296,7 @@ func (g *GitHub) reconcile(ctx context.Context, s *storage.Store, repo string, n
 		}
 		body += "The check updates automatically after signing or pushing commits."
 	}
-	body += "\n\n[Recheck this PR](" + recheckURL + ") · You can also comment `recheck`."
+	body += "\n\n[Recheck this PR](" + recheckURL + ")"
 	var commentID int64
 	var previous string
 	for page := 1; ; page++ {
@@ -321,6 +321,10 @@ func (g *GitHub) reconcile(ctx context.Context, s *storage.Store, repo string, n
 		if commentID > 0 || len(comments) < 100 {
 			break
 		}
+	}
+	// Passing checks stay silent unless an existing reminder needs to be resolved.
+	if commentID == 0 && state == "success" {
+		return nil
 	}
 	if previous == body {
 		return nil
