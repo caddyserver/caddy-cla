@@ -147,3 +147,11 @@ CREATE TABLE IF NOT EXISTS merge_groups (
     received INTEGER NOT NULL,
     PRIMARY KEY(repo, head_sha)
 );
+
+-- Only a first-time opened webhook may authorize an initial reminder.
+CREATE TABLE IF NOT EXISTS initial_pr_checks (
+    repo TEXT NOT NULL,
+    number INTEGER NOT NULL,
+    checked INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY(repo,number)
+);

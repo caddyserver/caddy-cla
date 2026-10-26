@@ -151,6 +151,13 @@ func (a *App) webhook(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(202)
 		return
 	}
+	if event == "pull_request" && p.Action == "opened" {
+		_, err = tx.Exec("INSERT OR IGNORE INTO initial_pr_checks(repo,number) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM prs WHERE repo=? AND number=?)", repo, number, repo, number)
+		if err != nil {
+			a.fail(w, err)
+			return
+		}
+	}
 	_, err = tx.Exec("INSERT INTO prs VALUES(?,?,?) ON CONFLICT(repo,number) DO UPDATE SET installation=excluded.installation", repo, number, p.Installation.ID)
 	if err == nil {
 		_, err = tx.Exec("INSERT INTO jobs(repo,number,installation) VALUES(?,?,?) ON CONFLICT(repo,number) DO UPDATE SET installation=excluded.installation,next=0,attempts=0,error='',generation=jobs.generation+1", repo, number, p.Installation.ID)

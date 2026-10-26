@@ -199,6 +199,19 @@ type pull struct {
 // reconcile evaluates contributors and updates the current head status and app-owned comment.
 // Incomplete commit lists and unresolved author identities prevent approval.
 func (g *GitHub) reconcile(ctx context.Context, s *storage.Store, repo string, number int, installation int64) error {
+	var allowNewComment bool
+	if err := s.QueryRow("SELECT EXISTS(SELECT 1 FROM initial_pr_checks WHERE repo=? AND number=? AND checked=0)", repo, number).Scan(&allowNewComment); err != nil {
+		return err
+	}
+	if err := g.reconcilePR(ctx, s, repo, number, installation, allowNewComment); err != nil {
+		return err
+	}
+	_, err := s.Exec("UPDATE initial_pr_checks SET checked=1 WHERE repo=? AND number=?", repo, number)
+	return err
+}
+
+// reconcilePR publishes a status and updates a reminder; only an initial opened check may create one.
+func (g *GitHub) reconcilePR(ctx context.Context, s *storage.Store, repo string, number int, installation int64, allowNewComment bool) error {
 	cfg, err := s.Repository(repo)
 	if err != nil {
 		return err
@@ -322,8 +335,8 @@ func (g *GitHub) reconcile(ctx context.Context, s *storage.Store, repo string, n
 			break
 		}
 	}
-	// Passing checks stay silent unless an existing reminder needs to be resolved.
-	if commentID == 0 && state == "success" {
+	// Existing PRs and already verified initial checks cannot create a new reminder.
+	if commentID == 0 && (state == "success" || !allowNewComment) {
 		return nil
 	}
 	if previous == body {

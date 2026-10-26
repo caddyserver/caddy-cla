@@ -1,6 +1,9 @@
 package app
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -85,6 +88,9 @@ func TestCommentLifecycle(t *testing.T) {
 			}
 		}
 	}
+	if _, err := a.s.Exec("INSERT INTO initial_pr_checks(repo,number) VALUES('caddyserver/caddy',10)"); err != nil {
+		t.Fatal(err)
+	}
 	sign()
 	check()
 	check()
@@ -92,6 +98,14 @@ func TestCommentLifecycle(t *testing.T) {
 		t.Fatalf("satisfied PR was commented on: create=%d update=%d statuses=%d", created, updated, statuses)
 	}
 	revoke()
+	check()
+	if created != 0 || updated != 0 {
+		t.Fatal("existing unsigned PR must remain silent")
+	}
+	// Simulate a newly opened, not-yet-verified PR.
+	if _, err := a.s.Exec("UPDATE initial_pr_checks SET checked=0 WHERE repo='caddyserver/caddy' AND number=10"); err != nil {
+		t.Fatal(err)
+	}
 	check()
 	check()
 	if created != 1 || updated != 0 {
@@ -113,5 +127,45 @@ func TestCommentLifecycle(t *testing.T) {
 	check()
 	if created != 1 || updated != 2 {
 		t.Fatalf("later changes must reuse the reminder: create=%d update=%d", created, updated)
+	}
+}
+
+// TestInitialReminderEligibility excludes backfills, updates and reopened PRs.
+func TestInitialReminderEligibility(t *testing.T) {
+	for _, tc := range []struct {
+		action  string
+		tracked bool
+		want    int
+	}{
+		{"opened", false, 1},
+		{"opened", true, 0},
+		{"synchronize", false, 0},
+		{"reopened", false, 0},
+	} {
+		t.Run(fmt.Sprintf("%s/tracked=%t", tc.action, tc.tracked), func(t *testing.T) {
+			a := fixture(t)
+			a.c.WebhookSecret = "secret"
+			if tc.tracked {
+				if err := a.enqueue("caddyserver/caddy", 10, 12); err != nil {
+					t.Fatal(err)
+				}
+			}
+			payload := fmt.Sprintf(`{"action":%q,"number":10,"repository":{"full_name":"caddyserver/caddy"},"installation":{"id":12}}`, tc.action)
+			mac := hmac.New(sha256.New, []byte("secret"))
+			mac.Write([]byte(payload))
+			r := httptest.NewRequest("POST", "/cla/webhooks/github", strings.NewReader(payload))
+			r.Header.Set("X-Hub-Signature-256", "sha256="+hex.EncodeToString(mac.Sum(nil)))
+			r.Header.Set("X-GitHub-Delivery", "initial-delivery")
+			r.Header.Set("X-GitHub-Event", "pull_request")
+			w := httptest.NewRecorder()
+			a.routes().ServeHTTP(w, r)
+			if w.Code != 202 {
+				t.Fatalf("webhook: %d %s", w.Code, w.Body)
+			}
+			var count int
+			if err := a.s.QueryRow("SELECT count(*) FROM initial_pr_checks WHERE checked=0").Scan(&count); err != nil || count != tc.want {
+				t.Fatalf("eligible=%d want=%d err=%v", count, tc.want, err)
+			}
+		})
 	}
 }

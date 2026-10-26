@@ -195,6 +195,10 @@ func TestSignedWebhookIsDurableAndDeduplicated(t *testing.T) {
 	if err := a.s.SignRepository(42, "alice", "caddyserver/caddy", "v1"); err != nil {
 		t.Fatal(err)
 	}
+	var eligible int
+	if err := a.s.QueryRow("SELECT count(*) FROM initial_pr_checks WHERE checked=0").Scan(&eligible); err != nil || eligible != 1 {
+		t.Fatalf("opened webhook must authorize exactly one initial check: %d %v", eligible, err)
+	}
 	var generation int
 	_ = a.s.QueryRow("SELECT generation FROM jobs").Scan(&generation)
 	if generation != 1 {
@@ -310,6 +314,9 @@ func TestGitHubReconcileAndDynamicAdmin(t *testing.T) {
 	permission = "read"
 	if a.gh.canAdminRepo(context.Background(), User{ID: 42, Login: "alice"}, "caddyserver/caddy") {
 		t.Fatal("reader granted admin")
+	}
+	if _, err := a.s.Exec("INSERT INTO initial_pr_checks(repo,number) VALUES('caddyserver/caddy',10)"); err != nil {
+		t.Fatal(err)
 	}
 	permission = "write"
 	if a.gh.canAdminRepo(context.Background(), User{ID: 43, Login: "alice"}, "caddyserver/caddy") {
