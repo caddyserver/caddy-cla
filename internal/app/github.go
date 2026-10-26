@@ -282,11 +282,16 @@ func (g *GitHub) reconcilePR(ctx context.Context, s *storage.Store, repo string,
 	if pr.Locked {
 		return nil
 	}
-	body := "<!-- caddy-cla -->\n**" + cfg.Title + "**\n\n"
+	body := "<!-- caddy-cla -->\n"
 	if state == "success" {
-		body += "✅ All identified contributors have signed the CLA. Thank you!"
+		body += "✅ "
 	} else {
-		body += "⚠️ Contributor License Agreement required.\n\n"
+		body += "⚠️ "
+	}
+	body += "**" + cfg.Title + "**\n\n"
+	if state == "success" {
+		body += "All identified contributors have signed the CLA. Thank you!"
+	} else {
 		if len(missing) > 0 {
 			body += strings.Join(missing, ", ") + ": please [read and sign the CLA](" + signURL + ").\n\n"
 		}
