@@ -111,7 +111,7 @@ func TestCommentLifecycle(t *testing.T) {
 	if created != 1 || updated != 0 {
 		t.Fatalf("reminder duplicated: create=%d update=%d", created, updated)
 	}
-	if !strings.Contains(body, "[Recheck this PR](") || strings.Contains(body, "also comment") {
+	if !strings.Contains(body, "⚠️ Contributor License Agreement required.") || !strings.Contains(body, "[Recheck this PR](") || strings.Contains(body, "also comment") {
 		t.Fatal("reminder must advertise the link flow only")
 	}
 	sign()
@@ -120,7 +120,7 @@ func TestCommentLifecycle(t *testing.T) {
 	if created != 1 || updated != 1 {
 		t.Fatalf("resolution created or repeatedly edited comments: create=%d update=%d", created, updated)
 	}
-	if !strings.Contains(body, "All identified contributors have signed the CLA. Thank you!") || strings.Contains(body, "or are exempt") {
+	if !strings.Contains(body, "✅ All identified contributors have signed the CLA. Thank you!") || strings.Contains(body, "or are exempt") {
 		t.Fatal("unexpected resolved wording")
 	}
 	revoke()
