@@ -183,9 +183,10 @@ func (g *GitHub) exempt(ctx context.Context, u User, token string, policy storag
 
 // pull contains the pull-request state needed to determine which commit receives a status.
 type pull struct {
-	State string `json:"state"`
-	User  User   `json:"user"`
-	Head  struct {
+	Locked bool   `json:"locked"`
+	State  string `json:"state"`
+	User   User   `json:"user"`
+	Head   struct {
 		SHA string `json:"sha"`
 	} `json:"head"`
 	Base struct {
@@ -264,6 +265,10 @@ func (g *GitHub) reconcile(ctx context.Context, s *storage.Store, repo string, n
 		"target_url":  signURL,
 	}, nil); err != nil {
 		return err
+	}
+	// GitHub disallows comments on locked conversations; the required status still applies.
+	if pr.Locked {
+		return nil
 	}
 	body := "<!-- caddy-cla -->\n**" + cfg.Title + "**\n\n"
 	if state == "success" {

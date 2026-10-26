@@ -30,7 +30,7 @@ References: [GitHub App ownership](https://docs.github.com/en/apps/maintaining-g
 and [repository transfers](https://docs.github.com/en/repositories/creating-and-managing-repositories/transferring-a-repository).
 
 For the Caddy deployment, an organization owner can use this
-[pre-filled GitHub App registration form](https://github.com/organizations/caddyserver/settings/apps/new?name=Caddy+CLA&description=Contributor+agreement+checks+for+Caddy+repositories&url=https%3A%2F%2Fcaddyserver.com%2Fcla%2F&webhook_active=true&webhook_url=https%3A%2F%2Fcaddyserver.com%2Fcla%2Fwebhooks%2Fgithub&request_oauth_on_install=false&public=false&metadata=read&pull_requests=write&statuses=write&merge_queues=read&events%5B%5D=pull_request&events%5B%5D=issue_comment&events%5B%5D=merge_group).
+[pre-filled GitHub App registration form](https://github.com/organizations/caddyserver/settings/apps/new?name=Caddy+CLA&description=Contributor+agreement+checks+for+Caddy+repositories&url=https%3A%2F%2Fcaddyserver.com%2Fcla%2F&webhook_active=true&webhook_url=https%3A%2F%2Fcaddyserver.com%2Fcla%2Fwebhooks%2Fgithub&request_oauth_on_install=false&public=false&metadata=read&issues=read&pull_requests=write&statuses=write&merge_queues=read&events%5B%5D=pull_request&events%5B%5D=issue_comment&events%5B%5D=merge_group).
 Review permissions before submitting, keep user authorization disabled, and add
 the webhook secret manually from `/etc/caddy-cla/secrets.env` on the server.
 The secret is deliberately omitted from the registration URL. Install initially
@@ -53,7 +53,8 @@ acceptance checkbox; login alone never records agreement acceptance.
 ### GitHub App: PR automation
 
 Use the service homepage as the App homepage. Do not enable user authorization,
-user-token expiration/refresh, a setup URL, or device flow for this bot. Contributor
+a setup URL or device flow for this bot. The user-token expiration setting can
+remain enabled; installation authentication does not use user tokens. Contributor
 login uses the separate OAuth App above. Keep the webhook active. Generate an RSA
 private key and install it as the PEM file named by `GITHUB_APP_PRIVATE_KEY_FILE`.
 The webhook secret must match the server's environment file.
@@ -64,6 +65,7 @@ Install only on the configured repositories. Request:
 | --- | --- | --- |
 | Metadata | Read | Repository installation and collaborator permission checks |
 | Pull requests | Write | Read PRs/commits and create/update the bot's PR comment |
+| Issues | Read | Receive PR `issue_comment` events for recheck commands |
 | Commit statuses | Write | Update `license/cla` on PR and merge-group heads |
 | Merge queues | Read | Receive `merge_group` check requests |
 

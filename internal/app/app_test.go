@@ -240,6 +240,7 @@ func TestGitHubReconcileAndDynamicAdmin(t *testing.T) {
 	state := ""
 	message := "test"
 	linkedAuthor := true
+	locked := false
 	commentBody := ""
 	refreshDuringStatus := false
 	permission := "write"
@@ -253,7 +254,7 @@ func TestGitHubReconcileAndDynamicAdmin(t *testing.T) {
 		case "/repos/caddyserver/caddy/collaborators/alice/permission":
 			fmt.Fprintf(w, `{"permission":%q,"user":{"id":42}}`, permission)
 		case "/repos/caddyserver/caddy/pulls/10":
-			fmt.Fprint(w, `{"state":"open","commits":1,"user":{"id":42,"login":"alice"},"head":{"sha":"abc"}}`)
+			fmt.Fprintf(w, `{"state":"open","locked":%t,"commits":1,"user":{"id":42,"login":"alice"},"head":{"sha":"abc"}}`, locked)
 		case "/repos/caddyserver/caddy/pulls/10/commits":
 			if linkedAuthor {
 				fmt.Fprintf(w, `[{"sha":"abc123def4567890","author":{"id":42,"login":"alice"},"committer":{"id":42,"login":"alice"},"commit":{"message":%q}}]`, message)
@@ -319,6 +320,15 @@ func TestGitHubReconcileAndDynamicAdmin(t *testing.T) {
 	if !strings.Contains(commentBody, "[Recheck this PR](http://localhost:8080/cla/recheck?") || !strings.Contains(commentBody, "repo=caddyserver%2Fcaddy") {
 		t.Fatalf("missing repository-bound recheck link: %s", commentBody)
 	}
+	locked = true
+	previousComments := comments
+	if err := a.gh.reconcile(context.Background(), a.s, "caddyserver/caddy", 10, 12); err != nil {
+		t.Fatal(err)
+	}
+	if state != "success" || comments != previousComments {
+		t.Fatal("locked PR must receive a status without a comment")
+	}
+	locked = false
 	linkedAuthor = false
 	if err := a.gh.reconcile(context.Background(), a.s, "caddyserver/caddy", 10, 12); err != nil {
 		t.Fatal(err)
