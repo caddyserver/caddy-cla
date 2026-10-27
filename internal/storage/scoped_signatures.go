@@ -137,7 +137,7 @@ func (s *Store) RevokeSignature(recordID, userID int64, repo string) error {
 
 // ScopedLegacy lists imported historical identities attached to the authorized repository.
 func (s *Store) ScopedLegacy(repo string) ([]LegacySignature, error) {
-	rows, err := s.Query(`SELECT l.key,l.login,l.version,l.signed_at,l.raw,CASE WHEN EXISTS(SELECT 1 FROM signatures s JOIN signature_repositories sr ON s.id=sr.signature_id WHERE sr.repo=lr.repo AND s.github_id=l.resolved_id AND s.version=l.version AND s.signed_at=l.signed_at) THEN l.resolved_id ELSE 0 END,l.resolved_by,l.resolved_at FROM legacy_signatures l JOIN legacy_repositories lr ON l.key=lr.signature_key WHERE lr.repo=? ORDER BY l.login`, repo)
+	rows, err := s.Query(`SELECT l.key,l.login,l.version,l.signed_at,l.raw,CASE WHEN EXISTS(SELECT 1 FROM signatures s JOIN signature_repositories sr ON s.id=sr.signature_id WHERE sr.repo=lr.repo AND s.github_id=l.resolved_id AND s.version=l.version AND s.signed_at=l.signed_at) THEN l.resolved_id ELSE 0 END,l.resolved_by,l.resolved_at,COALESCE(v.revoked_at,''),COALESCE(v.revoked_by,0),COALESCE(v.reason,'') FROM legacy_signatures l JOIN legacy_repositories lr ON l.key=lr.signature_key LEFT JOIN legacy_revocations v ON v.key=l.key AND v.repo=lr.repo WHERE lr.repo=? ORDER BY (v.revoked_at IS NOT NULL),l.resolved_id<>0,l.login`, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func (s *Store) ScopedLegacy(repo string) ([]LegacySignature, error) {
 	for rows.Next() {
 		var x LegacySignature
 		var raw string
-		if err = rows.Scan(&x.Key, &x.Login, &x.Version, &x.SignedAt, &raw, &x.ResolvedID, &x.ResolvedBy, &x.ResolvedAt); err != nil {
+		if err = rows.Scan(&x.Key, &x.Login, &x.Version, &x.SignedAt, &raw, &x.ResolvedID, &x.ResolvedBy, &x.ResolvedAt, &x.RevokedAt, &x.RevokedBy, &x.RevocationReason); err != nil {
 			return nil, err
 		}
 		x.Raw = json.RawMessage(raw)
@@ -167,6 +167,13 @@ func (s *Store) LinkLegacy(key, repo string, userID int64, login string, actor i
 	err = tx.QueryRow(`SELECT l.version,l.signed_at,l.raw,l.resolved_id FROM legacy_signatures l JOIN legacy_repositories lr ON l.key=lr.signature_key WHERE l.key=? AND lr.repo=?`, key, repo).Scan(&version, &date, &raw, &resolved)
 	if err != nil {
 		return fmt.Errorf("legacy signature not found in this repository")
+	}
+	var rejected bool
+	if err = tx.QueryRow("SELECT EXISTS(SELECT 1 FROM legacy_revocations WHERE key=? AND repo=?)", key, repo).Scan(&rejected); err != nil {
+		return err
+	}
+	if rejected {
+		return fmt.Errorf("historical evidence was revoked; contributor must sign again")
 	}
 	if resolved != 0 && resolved != userID {
 		return fmt.Errorf("legacy signature is already linked to a different identity")

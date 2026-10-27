@@ -155,3 +155,12 @@ CREATE TABLE IF NOT EXISTS initial_pr_checks (
     checked INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY(repo,number)
 );
+
+CREATE TABLE IF NOT EXISTS legacy_revocations (
+    key TEXT NOT NULL REFERENCES legacy_signatures(key),
+    repo TEXT NOT NULL REFERENCES repositories(name),
+    revoked_at TEXT NOT NULL,
+    revoked_by INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    PRIMARY KEY(key,repo)
+);

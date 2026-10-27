@@ -69,6 +69,9 @@ func TestBrowserHarness(t *testing.T) {
 	}))
 	defer github.Close()
 	a.gh.api = github.URL
+	if _, err = a.s.ImportJSON([]byte(`[{"user":"historical-example","created_at":"2016-01-01T00:00:00Z"}]`), cfg.Version, cfg.Name, ""); err != nil {
+		t.Fatal(err)
+	}
 	routes := a.routes()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/__test/login" {

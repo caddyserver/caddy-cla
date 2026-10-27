@@ -79,6 +79,7 @@ func (a *App) routes() http.Handler {
 	m.HandleFunc("GET "+p("/admin/history"), a.history)
 	m.HandleFunc("GET "+p("/admin/legacy"), a.legacyPage)
 	m.HandleFunc("POST "+p("/admin/legacy/link"), a.linkLegacy)
+	m.HandleFunc("POST "+p("/admin/legacy/revoke"), a.revokeLegacy)
 	m.HandleFunc("POST "+p("/admin/settings"), a.settings)
 	m.HandleFunc("GET "+p("/admin/export"), a.export)
 	m.HandleFunc("POST "+p("/admin/recheck"), a.recheck)

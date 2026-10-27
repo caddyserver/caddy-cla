@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -194,6 +195,7 @@ func (s *Store) ImportFile(file, version, repo, source string, repoIDs ...string
 func (s *Store) ImportJSON(b []byte, version, repo, source string, repoIDs ...string) (int, error) {
 	var err error
 	var records []json.RawMessage
+	var rejectedLegacy []LegacySignature
 	if err = json.Unmarshal(b, &records); err != nil {
 		var wrapper struct {
 			Repository string            `json:"repository"`
@@ -212,6 +214,9 @@ func (s *Store) ImportJSON(b []byte, version, repo, source string, repoIDs ...st
 		}
 		records = wrapper.Signatures
 		for _, legacy := range wrapper.Legacy {
+			if legacy.RevokedAt != "" {
+				rejectedLegacy = append(rejectedLegacy, legacy)
+			}
 			if len(legacy.Raw) == 0 || !json.Valid(legacy.Raw) {
 				return 0, fmt.Errorf("invalid legacy evidence")
 			}
@@ -318,6 +323,21 @@ func (s *Store) ImportJSON(b []byte, version, repo, source string, repoIDs ...st
 			return 0, err
 		}
 		if err = associateSignature(tx, x, repo); err != nil {
+			return 0, err
+		}
+	}
+	for _, legacy := range rejectedLegacy {
+		if _, err = time.Parse(time.RFC3339Nano, legacy.RevokedAt); err != nil {
+			return 0, fmt.Errorf("invalid legacy revocation date")
+		}
+		if strings.TrimSpace(legacy.RevocationReason) == "" || len(legacy.RevocationReason) > 1000 {
+			return 0, fmt.Errorf("invalid legacy revocation reason")
+		}
+		var key string
+		if err = tx.QueryRow("SELECT l.key FROM legacy_signatures l JOIN legacy_repositories r ON r.signature_key=l.key WHERE json(l.raw)=json(?) AND r.repo=?", string(legacy.Raw), repo).Scan(&key); err != nil {
+			return 0, err
+		}
+		if _, err = tx.Exec("INSERT OR IGNORE INTO legacy_revocations(key,repo,revoked_at,revoked_by,reason) VALUES(?,?,?,?,?)", key, repo, legacy.RevokedAt, legacy.RevokedBy, legacy.RevocationReason); err != nil {
 			return 0, err
 		}
 	}

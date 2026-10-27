@@ -12,7 +12,7 @@ header a{text-decoration:none}header a:hover{text-decoration:underline}header .b
 <body>
 <header>
 <a class="brand" href="{{.Base}}/">{{template "logo"}}<span>Contributor agreements</span></a>
-<nav>{{if .Logged}}<span class="account"><img class="avatar" src="https://avatars.githubusercontent.com/u/{{.Session.ID}}?s=64" width="32" height="32" alt="" referrerpolicy="no-referrer">@{{.Session.Login}}</span>{{if .Admin}}<a href="{{.Base}}/admin">Administration</a> <a href="{{.Base}}/history">My signatures</a>{{end}}<form method="post" action="{{.Base}}/logout">
+<nav>{{if .Logged}}<span class="account"><img class="avatar" src="https://avatars.githubusercontent.com/u/{{.Session.ID}}?s=64" width="32" height="32" alt="" referrerpolicy="no-referrer">@{{.Session.Login}}</span>{{if .Admin}}<a href="{{.Base}}/admin">Administration</a> <a href="{{.Base}}/history">My signatures</a>{{end}}<form autocomplete="off" method="post" action="{{.Base}}/logout">
 <input type="hidden" name="csrf" value="{{.Session.CSRF}}">
 <button class="secondary">Sign out</button>
 </form>{{end}}</nav>

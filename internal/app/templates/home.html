@@ -11,7 +11,7 @@
 {{if .Signed}}<h2>Thank you, @{{.Session.Login}}.</h2><p>No further action is needed for this version and repository.</p>
 {{else}}
 <h2>Sign as @{{.Session.Login}}</h2>
-<form method="post" action="{{.Base}}/sign">
+<form autocomplete="off" method="post" action="{{.Base}}/sign">
 <input type="hidden" name="csrf" value="{{.Session.CSRF}}">
 <input type="hidden" name="repo" value="{{.Repo}}">
 <input type="hidden" name="version" value="{{.Version}}">

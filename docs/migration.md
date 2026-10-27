@@ -33,3 +33,10 @@ The same JSON and CSV uploads are supported at **Administration â†’ Signatures â
 Import signatures**. Select the repository and the existing agreement revision
 that the records represent. An invalid upload commits no records. CSV records
 without numeric GitHub IDs require identity review rather than granting approval.
+
+Unverifiable historical records can be revoked from the legacy identity page.
+This action requires a reason and confirmation, preserves the original evidence,
+and prevents the record from being linked later. It applies only to unresolved
+records in that repository; linked acceptances use signer-history revocation.
+Contributors can still sign anew with their current GitHub account. Reimporting
+the old export does not clear a revocation, and native JSON exports preserve it.

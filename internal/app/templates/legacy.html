@@ -4,11 +4,20 @@
 <p><a href="{{.Base}}/admin?repo={{urlquery .Repo}}">Back to administration</a></p>
 <p>These records lack a numeric GitHub ID. Verify that the historical signer owns the current account before linking: usernames can be reassigned. Original evidence and the administrator audit trail are retained.</p>
 {{range .Records}}<section class="card"><h2>{{.Login}}</h2><p>Signed {{.SignedAt}} · Version {{.Version}}</p>
-{{if .ResolvedID}}<p>Linked to GitHub ID {{.ResolvedID}} by administrator {{.ResolvedBy}} on {{.ResolvedAt}}</p>
-{{else}}<form method="post" action="{{$.Base}}/admin/legacy/link">
+{{if .RevokedAt}}<p>Historical evidence revoked by administrator {{.RevokedBy}} on {{.RevokedAt}}.</p><p>{{.RevocationReason}}</p><p>This record cannot be linked. The contributor must sign again with their current GitHub account.</p>
+{{else if .ResolvedID}}<p>Linked to GitHub ID {{.ResolvedID}} by administrator {{.ResolvedBy}} on {{.ResolvedAt}}</p>
+{{else}}<form autocomplete="off" method="post" action="{{$.Base}}/admin/legacy/link">
 <input type="hidden" name="csrf" value="{{$.Session.CSRF}}"><input type="hidden" name="repo" value="{{$.Repo}}"><input type="hidden" name="key" value="{{.Key}}">
-<label>Current GitHub username <input name="login" value="{{.Login}}" required></label>
+<label>Current GitHub username <input type="text" name="github_account" value="{{.Login}}" required autocomplete="off" data-1p-ignore="true" data-lpignore="true" autocapitalize="none" spellcheck="false"></label>
 <label><input type="checkbox" name="verified" value="yes" required>I verified this is the same person who signed the historical agreement.</label><button>Link verified identity</button>
-</form>{{end}}</section>{{else}}<p>No legacy records require resolution.</p>{{end}}
+</form>
+<details><summary>Revoke unverifiable historical evidence</summary>
+<p>This prevents this historical record from being linked later. It does not revoke any verified account’s signatures. Original evidence remains in history.</p>
+<form autocomplete="off" method="post" action="{{$.Base}}/admin/legacy/revoke">
+<input type="hidden" name="csrf" value="{{$.Session.CSRF}}"><input type="hidden" name="repo" value="{{$.Repo}}"><input type="hidden" name="key" value="{{.Key}}">
+<label>Reason<input type="text" name="reason" required maxlength="1000" autocomplete="off" data-1p-ignore="true" data-lpignore="true" autocapitalize="none" spellcheck="false"></label>
+<label><input type="checkbox" name="confirm" value="yes" required>I want to revoke this historical evidence and require a new signature if this person contributes again.</label>
+<button>Revoke historical evidence</button>
+</form></details>{{end}}</section>{{else}}<p>No legacy records require resolution.</p>{{end}}
 {{template "foot" .}}
 {{end}}
