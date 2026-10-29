@@ -3,6 +3,7 @@ package storage
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -210,8 +211,11 @@ func (s *Store) LinkLegacy(key, repo string, userID int64, login string, actor i
 	return tx.Commit()
 }
 
-// QueueManualRecheck rate-limits browser rechecks while preserving event-driven and signing-triggered updates.
-func (s *Store) QueueManualRecheck(repo string, number int, installation int64) error {
+// ErrRecheckLimited indicates that this PR was checked within the shared cooldown.
+var ErrRecheckLimited = errors.New("a recheck was just requested; retry in 30 seconds")
+
+// ReserveManualRecheck atomically enforces the per-PR cooldown without enqueueing any work.
+func (s *Store) ReserveManualRecheck(repo string, number int) error {
 	tx, err := s.Begin()
 	if err != nil {
 		return err
@@ -224,15 +228,9 @@ func (s *Store) QueueManualRecheck(repo string, number int, installation int64) 
 	}
 	now := time.Now().Unix()
 	if previous > now-30 {
-		return fmt.Errorf("a recheck was just requested; retry in 30 seconds")
+		return ErrRecheckLimited
 	}
 	if _, err = tx.Exec("INSERT INTO manual_rechecks VALUES(?,?,?) ON CONFLICT(repo,number) DO UPDATE SET requested_at=excluded.requested_at", repo, number, now); err != nil {
-		return err
-	}
-	if _, err = tx.Exec("INSERT INTO prs VALUES(?,?,?) ON CONFLICT(repo,number) DO UPDATE SET installation=excluded.installation", repo, number, installation); err != nil {
-		return err
-	}
-	if err = queueRepository(tx, repo); err != nil {
 		return err
 	}
 	return tx.Commit()

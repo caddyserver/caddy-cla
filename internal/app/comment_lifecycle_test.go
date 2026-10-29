@@ -120,7 +120,7 @@ func TestCommentLifecycle(t *testing.T) {
 	if created != 1 || updated != 1 {
 		t.Fatalf("resolution created or repeatedly edited comments: create=%d update=%d", created, updated)
 	}
-	if !strings.Contains(body, "✅ **") || !strings.Contains(body, "All identified contributors have signed the CLA. Thank you!") || strings.Contains(body, "or are exempt") {
+	if !strings.Contains(body, "✅ **") || !strings.Contains(body, "All identified contributors have signed the CLA. Thank you!") || strings.Contains(body, "or are exempt") || strings.Contains(body, "[Recheck this PR]") {
 		t.Fatal("unexpected resolved wording")
 	}
 	revoke()

@@ -39,11 +39,12 @@ Merge queues receive `license/cla` on their synthetic head commit. Merge checks
 retry API failures and are requeued after signature or agreement changes. Pending
 merge checks and retry errors appear in the repository’s admin page.
 
-The comment links to the repository's signing page and a **Recheck this PR** page.
-That link preserves PR context through OAuth and requires a CSRF-protected button
-press. The PR author, a covered contributor or repository writer may request a
-recheck; browser requests are limited to one per PR per 30 seconds. The PR author
-or a writer can also comment `recheck` or `@cla-bot check`.
+Unresolved reminders include **Recheck this PR**. Clicking it synchronously
+checks that tracked PR and redirects back to GitHub, without login or a
+confirmation page. Requests share a 30-second cooldown per PR; repeated clicks
+return to the PR without another API call. A browser recheck never creates a new
+reminder, and resolved comments omit the link. The PR author or a writer can also
+comment `recheck` or `@cla-bot check`.
 
 The PR opener and linked commit authors must have signed or be exempt. When GitHub
 cannot associate an author email with an account, the comment identifies the

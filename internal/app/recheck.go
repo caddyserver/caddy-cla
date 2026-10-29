@@ -1,33 +1,23 @@
 package app
 
 import (
+	"context"
+	"database/sql"
+	"errors"
 	"net/http"
 	"strconv"
+	"time"
+
+	"caddy-cla/internal/storage"
 )
 
-// recheckPage presents an authenticated confirmation rather than changing GitHub state on a GET.
+// recheckPage synchronously refreshes one tracked public PR and returns to GitHub.
+// It needs no login and never authorizes a new reminder comment.
 func (a *App) recheckPage(w http.ResponseWriter, r *http.Request) {
-	user, ok := a.requireLogin(w, r)
-	if !ok {
-		return
-	}
-	repo, err := a.repository(r)
-	number, parseErr := strconv.Atoi(r.URL.Query().Get("pr"))
-	if err != nil || parseErr != nil || number <= 0 {
-		http.Error(w, "Invalid repository or PR", 400)
-		return
-	}
-	a.render(w, "recheck", map[string]any{"Base": a.c.BasePath, "Session": user, "Logged": true, "Repo": repo.Name, "Number": number})
-}
-
-// recheckPR allows the PR author, a covered contributor or repository writer to request a fresh check.
-func (a *App) recheckPR(w http.ResponseWriter, r *http.Request) {
-	user, ok := a.csrf(w, r)
-	if !ok {
-		return
-	}
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Robots-Tag", "noindex, nofollow")
 	if !a.c.AutomationEnabled {
-		http.Error(w, "GitHub automation is disabled", http.StatusServiceUnavailable)
+		http.Error(w, "GitHub automation is disabled", 503)
 		return
 	}
 	repo, err := a.repository(r)
@@ -36,37 +26,38 @@ func (a *App) recheckPR(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid repository or PR", 400)
 		return
 	}
-	installation, err := a.gh.installation(r.Context(), repo.Name)
-	if err != nil {
+	var installation int64
+	if err = a.s.QueryRow("SELECT installation FROM prs WHERE repo=? AND number=?", repo.Name, number).Scan(&installation); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Pull request is not tracked", 404)
+		} else {
+			a.fail(w, err)
+		}
+		return
+	}
+	target := "https://github.com/" + repo.Name + "/pull/" + strconv.Itoa(number)
+	if err = a.s.ReserveManualRecheck(repo.Name, number); err != nil {
+		if errors.Is(err, storage.ErrRecheckLimited) {
+			w.Header().Set("Retry-After", "30")
+			http.Redirect(w, r, target, 303)
+		} else {
+			a.fail(w, err)
+		}
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+	if err = a.gh.reconcilePR(ctx, a.s, repo.Name, number, installation, false); err != nil {
 		a.fail(w, err)
 		return
 	}
-	token, err := a.gh.token(r.Context(), installation)
-	if err != nil {
-		a.fail(w, err)
+	http.Redirect(w, r, target, 303)
+}
+
+// recheckPR retains compatibility with previously rendered CSRF-protected forms.
+func (a *App) recheckPR(w http.ResponseWriter, r *http.Request) {
+	if _, ok := a.csrf(w, r); !ok {
 		return
 	}
-	var pr pull
-	if err = a.gh.request(r.Context(), "GET", "/repos/"+repo.Name+"/pulls/"+strconv.Itoa(number), token, nil, &pr); err != nil {
-		http.Error(w, "Pull request not found", 404)
-		return
-	}
-	covered, err := a.s.RepositorySigned(user.ID, repo.Name, repo.Version)
-	if err != nil {
-		a.fail(w, err)
-		return
-	}
-	if pr.User.ID != user.ID && !covered && !a.gh.canAdminRepo(r.Context(), user.User, repo.Name) {
-		http.Error(w, "Only the PR author, a covered contributor or a repository writer can recheck", 403)
-		return
-	}
-	if pr.State != "open" {
-		http.Error(w, "Pull request is not open", 409)
-		return
-	}
-	if err = a.s.QueueManualRecheck(repo.Name, number, installation); err != nil {
-		http.Error(w, err.Error(), 429)
-		return
-	}
-	a.render(w, "recheck", map[string]any{"Base": a.c.BasePath, "Session": user, "Logged": true, "Repo": repo.Name, "Number": number, "Queued": true})
+	a.recheckPage(w, r)
 }

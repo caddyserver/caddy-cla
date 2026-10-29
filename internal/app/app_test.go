@@ -337,8 +337,8 @@ func TestGitHubReconcileAndDynamicAdmin(t *testing.T) {
 	if state != "success" || statuses != 2 || comments != 2 {
 		t.Fatalf("signed author: %s statuses=%d comments=%d", state, statuses, comments)
 	}
-	if !strings.Contains(commentBody, "[Recheck this PR](http://localhost:8080/cla/recheck?") || !strings.Contains(commentBody, "repo=caddyserver%2Fcaddy") {
-		t.Fatalf("missing repository-bound recheck link: %s", commentBody)
+	if strings.Contains(commentBody, "[Recheck this PR]") {
+		t.Fatal("resolved reminder retains recheck link")
 	}
 	locked = true
 	previousComments := comments

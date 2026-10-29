@@ -160,47 +160,6 @@ func TestUserHistoryAndRevocation(t *testing.T) {
 	}
 }
 
-// TestRecheckReturnAndPermission keeps PR context across login and limits requests to authorized contributors.
-func TestRecheckReturnAndPermission(t *testing.T) {
-	a := fixture(t)
-	appKey(t, a)
-	cookie := loginFixture(t, a, 42)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/repos/caddyserver/caddy/installation":
-			fmt.Fprint(w, `{"id":12}`)
-		case "/app/installations/12/access_tokens":
-			fmt.Fprint(w, `{"token":"test"}`)
-		case "/repos/caddyserver/caddy/pulls/10":
-			fmt.Fprint(w, `{"state":"open","user":{"id":42,"login":"alice"}}`)
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer server.Close()
-	a.gh.api = server.URL
-	req := httptest.NewRequest("GET", "/cla/recheck?repo=caddyserver%2Fcaddy&pr=10", nil)
-	res := httptest.NewRecorder()
-	a.routes().ServeHTTP(res, req)
-	if res.Code != 303 || !strings.Contains(res.Header().Get("Location"), "next=") {
-		t.Fatal("recheck login lost PR context")
-	}
-	form := url.Values{"csrf": {"csrf-test"}, "repo": {"caddyserver/caddy"}, "pr": {"10"}}
-	res = postForm(t, a, cookie, "/cla/recheck", form)
-	if res.Code != 200 || !strings.Contains(res.Body.String(), "Recheck queued") {
-		t.Fatalf("manual recheck: %d %s", res.Code, res.Body)
-	}
-	res = postForm(t, a, cookie, "/cla/recheck", form)
-	if res.Code != 429 {
-		t.Fatal("manual recheck was not rate limited")
-	}
-	for _, next := range []string{"https://evil.test", "//evil.test", "/outside", "/cla/\\evil", "/cla/../outside", "/cla/%2e%2e/outside"} {
-		if a.safeReturnURL(next) != "/cla/" {
-			t.Errorf("unsafe return accepted: %q", next)
-		}
-	}
-}
-
 // TestRepositoryExportsDoNotLeak keeps identical agreement versions isolated in the administrator API.
 func TestRepositoryExportsDoNotLeak(t *testing.T) {
 	a := fixture(t)
@@ -348,5 +307,15 @@ func TestRepositoryWriterCannotEditOtherRepository(t *testing.T) {
 	a.routes().ServeHTTP(res, req)
 	if res.Code != 200 {
 		t.Fatalf("writer could not administer own repository: %d %s", res.Code, res.Body)
+	}
+}
+
+// TestUnsafeOAuthReturnURLs rejects redirects outside the deployment's route prefix.
+func TestUnsafeOAuthReturnURLs(t *testing.T) {
+	a := fixture(t)
+	for _, next := range []string{"https://evil.test", "//evil.test", "/outside", "/cla/\\evil", "/cla/../outside", "/cla/%2e%2e/outside"} {
+		if a.safeReturnURL(next) != "/cla/" {
+			t.Errorf("unsafe return accepted: %q", next)
+		}
 	}
 }

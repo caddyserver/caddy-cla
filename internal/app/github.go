@@ -314,7 +314,9 @@ func (g *GitHub) reconcilePR(ctx context.Context, s *storage.Store, repo string,
 		}
 		body += "The check updates automatically after signing or pushing commits."
 	}
-	body += "\n\n[Recheck this PR](" + recheckURL + ")"
+	if state != "success" {
+		body += "\n\n[Recheck this PR](" + recheckURL + ")"
+	}
 	var commentID int64
 	var previous string
 	for page := 1; ; page++ {
